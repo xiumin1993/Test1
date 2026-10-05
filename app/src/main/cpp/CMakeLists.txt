@@ -22,6 +22,7 @@ add_library(
         jni/native-lib.cpp
         audio/audio_engine.cpp
         ringbuffer/pa_ringbuffer.c
+        roc/roc_receiver.cpp
 )
 
 target_link_libraries(

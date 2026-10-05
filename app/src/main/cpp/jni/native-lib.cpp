@@ -1,40 +1,55 @@
 #include <jni.h>
-#include "../audio/audio_engine.h"
+#include "audio_engine.h"
+#include "roc/roc_receiver.h"
 #include <android/log.h>
 
 #define LOG_TAG "NativeLib"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
-// 全局唯一的 AudioEngine 实例
+// ==================== 全局实例 ====================
 static AudioEngine gAudioEngine;
+static RocReceiver* gRocReceiver = nullptr;
 
-// 启动 Oboe 播放引擎
-extern "C" JNIEXPORT void JNICALL
-Java_com_example_test_MainActivity_startAudio(JNIEnv *env, jobject /* this */) {
-    LOGI("startAudio called");
-    gAudioEngine.start();
-}
-
-// 停止 Oboe 播放引擎
-extern "C" JNIEXPORT void JNICALL
-Java_com_example_test_MainActivity_stopAudio(JNIEnv *env, jobject /* this */) {
-    LOGI("stopAudio called");
-    gAudioEngine.stop();
-}
-
-// 写入 PCM 数据到环形缓冲区（供 Kotlin 层调用）
-extern "C" JNIEXPORT jint JNICALL
-Java_com_example_test_MainActivity_writeAudioData(JNIEnv *env, jobject /* this */,
-                                                  jshortArray data, jint numFrames) {
-    if (data == nullptr || numFrames <= 0) return 0;
-    jshort *buf = env->GetShortArrayElements(data, nullptr);
-    if (buf == nullptr) return 0;
-    ring_buffer_size_t written = gAudioEngine.writeAudioData(buf, numFrames);
-    env->ReleaseShortArrayElements(data, buf, JNI_ABORT);
-    return static_cast<jint>(written);
-}
-
+// ==================== 音量控制 ====================
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_test_MainActivity_setVolume(JNIEnv *env, jobject /* this */, jfloat volume) {
+    LOGI("setVolume called: %f", volume);
     gAudioEngine.setVolume(volume);
+}
+
+// ==================== Roc 接收器控制 ====================
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_example_test_MainActivity_startRocReceiver(JNIEnv *env, jobject /* this */, jint port) {
+    LOGI("startRocReceiver called, port=%d", port);
+
+    if (gRocReceiver == nullptr) {
+        gRocReceiver = new RocReceiver();
+    }
+
+    // 1. 先启动 Oboe 播放引擎（从环形缓冲区读取）
+    if (!gAudioEngine.start()) {
+        LOGI("Failed to start AudioEngine");
+        return JNI_FALSE;
+    }
+
+    // 2. 再启动 Roc 接收器（向环形缓冲区写入）
+    bool ok = gRocReceiver->start(gAudioEngine, port);
+    if (!ok) {
+        LOGI("Failed to start RocReceiver");
+        gAudioEngine.stop();
+        return JNI_FALSE;
+    }
+
+    LOGI("RocReceiver started successfully");
+    return JNI_TRUE;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_test_MainActivity_stopRocReceiver(JNIEnv *env, jobject /* this */) {
+    LOGI("stopRocReceiver called");
+
+    if (gRocReceiver != nullptr) {
+        gRocReceiver->stop();
+    }
+    gAudioEngine.stop();
 }
