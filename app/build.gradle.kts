@@ -8,6 +8,12 @@ android {
     compileSdk {
         version = release(37)
     }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
 
     defaultConfig {
         applicationId = "com.example.test"
@@ -17,6 +23,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                // 必须添加这一行
+                arguments("-DANDROID_STL=c++_shared")
+            }
+        }
+        ndk {
+            // 手机如果是 64 位选 arm64-v8a，旧手机可能是 armeabi-v7a
+            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
+        }
     }
 
     buildTypes {
@@ -28,15 +44,20 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
     buildFeatures {
         compose = true
+        prefab = true // 开启 Prefab 以使用 Oboe
     }
+    buildToolsVersion = "37.0.0"
+    ndkVersion = "30.0.16248370"
 }
 
 dependencies {
+    implementation(libs.androidx.material3)
+    implementation(libs.oboe) // 引用 toml 中的 Oboe
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
