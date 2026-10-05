@@ -22,6 +22,11 @@ public:
     float getBufferLevelMs() const;
 
     /**
+     * 返回当前环形缓冲区里堆积的帧数（供生产者做水位控制）
+     */
+    ring_buffer_size_t getBufferLevelFrames() const;
+
+    /**
      * 写入 float32 PCM 数据到环形缓冲区
      * @param data      float32 交错立体声 PCM 数据，取值范围 [-1.0, 1.0]
      * @param numFrames 帧数（每帧包含左右两个 float）

@@ -89,12 +89,16 @@ bool AudioEngine::start() {
     return true;
 }
 
-float AudioEngine::getBufferLevelMs() const {
+ring_buffer_size_t AudioEngine::getBufferLevelFrames() const {
     // PaUtil_GetRingBufferReadAvailable 返回"当前可读的帧数"
     // 也就是生产者写入但消费者还没读取的帧数
-    ring_buffer_size_t available = PaUtil_GetRingBufferReadAvailable(
+    // 注意：该值不是原子的，仅用于水位判断和 UI 显示，不用于同步
+    return PaUtil_GetRingBufferReadAvailable(
             const_cast<PaUtilRingBuffer*>(&ringBuffer_));
-    return static_cast<float>(available) * 1000.0f / kSampleRate;
+}
+
+float AudioEngine::getBufferLevelMs() const {
+    return static_cast<float>(getBufferLevelFrames()) * 1000.0f / kSampleRate;
 }
 
 void AudioEngine::stop() {
