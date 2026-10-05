@@ -1,22 +1,33 @@
 cmake_minimum_required(VERSION 3.22.1)
 project("test1")
 
-# 查找 Oboe
+include_directories(
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/audio
+        ${CMAKE_CURRENT_SOURCE_DIR}/ringbuffer
+        ${CMAKE_CURRENT_SOURCE_DIR}/roc/include
+)
+
 find_package(oboe REQUIRED CONFIG)
 
-# 添加所有源文件
+# 导入预编译的 libroc.so
+add_library(roc SHARED IMPORTED)
+set_target_properties(roc PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../../jniLibs/${ANDROID_ABI}/libroc.so
+)
+
 add_library(
         native-lib
         SHARED
-        native-lib.cpp
-        audio_engine.cpp
+        jni/native-lib.cpp
+        audio/audio_engine.cpp
         ringbuffer/pa_ringbuffer.c
 )
 
-# 链接 Oboe 和系统库
 target_link_libraries(
         native-lib
         oboe::oboe
+        roc
         log
         android
 )

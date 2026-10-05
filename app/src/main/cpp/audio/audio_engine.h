@@ -5,7 +5,7 @@
 #include <memory>
 #include <cstdint>
 #include <atomic>
-#include "ringbuffer/pa_ringbuffer.h"
+#include "../ringbuffer/pa_ringbuffer.h"
 
 class AudioEngine : public oboe::AudioStreamDataCallback {
 public:

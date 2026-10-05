@@ -4,6 +4,9 @@ plugins {
 }
 
 android {
+    packaging {
+        jniLibs.pickFirsts.add("**/libc++_shared.so")
+    }
     namespace = "com.example.test"
     compileSdk {
         version = release(37)
@@ -31,7 +34,7 @@ android {
         }
         ndk {
             // 手机如果是 64 位选 arm64-v8a，旧手机可能是 armeabi-v7a
-            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
+            abiFilters.addAll(listOf("arm64-v8a"))
         }
     }
 

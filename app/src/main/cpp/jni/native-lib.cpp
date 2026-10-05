@@ -1,5 +1,5 @@
 #include <jni.h>
-#include "audio_engine.h"
+#include "../audio/audio_engine.h"
 #include <android/log.h>
 
 #define LOG_TAG "NativeLib"
