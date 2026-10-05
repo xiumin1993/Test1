@@ -1,57 +1,35 @@
 #include <jni.h>
-#include <oboe/Oboe.h>
+#include "audio_engine.h"
 #include <android/log.h>
-#include <cstring>
 
-#define LOG_TAG "OboeEngine"
+#define LOG_TAG "NativeLib"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
-class AudioEngine : public oboe::AudioStreamDataCallback {
-public:
-    oboe::DataCallbackResult onAudioReady(
-            oboe::AudioStream *oboeStream,
-            void *audioData,
-            int32_t numFrames) override {
+// 全局唯一的 AudioEngine 实例
+static AudioEngine gAudioEngine;
 
-        // TODO: 之后这里会从 Roc 的环形缓冲区读取数据
-        // 现在先播放静音，验证音频流是否正常
-        auto *output = static_cast<int16_t *>(audioData);
-        memset(output, 0, numFrames * oboeStream->getChannelCount() * sizeof(int16_t));
-
-        return oboe::DataCallbackResult::Continue;
-    }
-};
-
-static AudioEngine engine;
-static std::shared_ptr<oboe::AudioStream> stream;
-
+// 启动 Oboe 播放引擎
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_test_MainActivity_startAudio(JNIEnv *env, jobject /* this */) {
-oboe::AudioStreamBuilder builder;
-oboe::Result result = builder.setDirection(oboe::Direction::Output)
-        ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
-        ->setSharingMode(oboe::SharingMode::Exclusive)
-        ->setFormat(oboe::AudioFormat::I16)
-        ->setChannelCount(2)
-        ->setSampleRate(48000)
-        ->setDataCallback(&engine)
-        ->openStream(stream);
-
-if (result != oboe::Result::OK) {
-LOGI("Failed to open stream: %s", oboe::convertToText(result));
-return;
+    LOGI("startAudio called");
+    gAudioEngine.start();
 }
 
-stream->requestStart();
-LOGI("Oboe stream started");
-}
-
+// 停止 Oboe 播放引擎
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_test_MainActivity_stopAudio(JNIEnv *env, jobject /* this */) {
-if (stream) {
-stream->stop();
-stream->close();
-stream.reset();
-LOGI("Oboe stream stopped");
+    LOGI("stopAudio called");
+    gAudioEngine.stop();
 }
+
+// 写入 PCM 数据到环形缓冲区（供 Kotlin 层调用）
+extern "C" JNIEXPORT jint JNICALL
+Java_com_example_test_MainActivity_writeAudioData(JNIEnv *env, jobject /* this */,
+                                                  jshortArray data, jint numFrames) {
+    if (data == nullptr || numFrames <= 0) return 0;
+    jshort *buf = env->GetShortArrayElements(data, nullptr);
+    if (buf == nullptr) return 0;
+    ring_buffer_size_t written = gAudioEngine.writeAudioData(buf, numFrames);
+    env->ReleaseShortArrayElements(data, buf, JNI_ABORT);
+    return static_cast<jint>(written);
 }
