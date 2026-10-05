@@ -33,3 +33,8 @@ Java_com_example_test_MainActivity_writeAudioData(JNIEnv *env, jobject /* this *
     env->ReleaseShortArrayElements(data, buf, JNI_ABORT);
     return static_cast<jint>(written);
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_test_MainActivity_setVolume(JNIEnv *env, jobject /* this */, jfloat volume) {
+    gAudioEngine.setVolume(volume);
+}

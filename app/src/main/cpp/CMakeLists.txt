@@ -10,7 +10,7 @@ add_library(
         SHARED
         native-lib.cpp
         audio_engine.cpp
-        pa_ringbuffer.c
+        ringbuffer/pa_ringbuffer.c
 )
 
 # 链接 Oboe 和系统库

@@ -14,11 +14,9 @@ AudioEngine::~AudioEngine() {
 }
 
 bool AudioEngine::initRingBuffer() {
-    // 初始化 pa_ringbuffer：元素大小 = 每帧字节数 (2 bytes * 2 channels)
-    // 元素个数 = 帧数，数据区 = ringBufferData_
     ring_buffer_size_t result = PaUtil_InitializeRingBuffer(
             &ringBuffer_,
-            sizeof(int16_t) * 2,
+            sizeof(int16_t) * kChannelCount,   // 每帧 4 字节（2 字节 * 2 声道）
             kRingBufferFrames,
             ringBufferData_
     );
@@ -34,10 +32,10 @@ bool AudioEngine::start() {
     oboe::AudioStreamBuilder builder;
     oboe::Result result = builder.setDirection(oboe::Direction::Output)
             ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
-            ->setSharingMode(oboe::SharingMode::Exclusive)
+            ->setSharingMode(oboe::SharingMode::Shared)   // ← 从 Exclusive 改成 Shared
             ->setFormat(oboe::AudioFormat::I16)
-            ->setChannelCount(2)
-            ->setSampleRate(48000)
+            ->setChannelCount(kChannelCount)
+            ->setSampleRate(kSampleRate)
             ->setDataCallback(this)
             ->openStream(stream_);
 
@@ -65,16 +63,17 @@ void AudioEngine::stop() {
     }
 }
 
+// ==================== 关键：setVolume 实现 ====================
+void AudioEngine::setVolume(float volume) {
+    if (volume < 0.0f) volume = 0.0f;
+    if (volume > 1.0f) volume = 1.0f;
+    volume_.store(volume, std::memory_order_relaxed);
+}
+// =============================================================
+
 ring_buffer_size_t AudioEngine::writeAudioData(const int16_t* data, int32_t numFrames) {
     if (!data || numFrames <= 0) return 0;
-
-    ring_buffer_size_t written = PaUtil_WriteRingBuffer(
-            &ringBuffer_, data, numFrames);
-
-    if (written < numFrames) {
-        LOGI("Ring buffer overflow: requested %d, wrote %d", numFrames, written);
-    }
-    return written;
+    return PaUtil_WriteRingBuffer(&ringBuffer_, data, numFrames);
 }
 
 oboe::DataCallbackResult AudioEngine::onAudioReady(
@@ -86,11 +85,22 @@ oboe::DataCallbackResult AudioEngine::onAudioReady(
     ring_buffer_size_t framesRead = PaUtil_ReadRingBuffer(
             &ringBuffer_, audioData, numFrames);
 
-    // 如果读取不足，用静音填充剩余部分
+    // 数据不足时用静音填充，避免爆音
     if (framesRead < numFrames) {
-        int32_t framesToFill = numFrames - framesRead;
+        auto framesToFill = static_cast<int32_t>(numFrames - framesRead);
         auto *out = static_cast<int16_t *>(audioData);
-        memset(out + framesRead * 2, 0, framesToFill * 2 * sizeof(int16_t));
+        memset(out + framesRead * kChannelCount, 0,
+               framesToFill * kChannelCount * sizeof(int16_t));
+    }
+
+    // 应用音量（只做 atomic read + 乘法，无 JNI、无锁、无分配）
+    float vol = volume_.load(std::memory_order_relaxed);
+    if (vol < 0.999f) {
+        auto *samples = static_cast<int16_t *>(audioData);
+        int32_t totalSamples = numFrames * kChannelCount;
+        for (int32_t i = 0; i < totalSamples; ++i) {
+            samples[i] = static_cast<int16_t>(static_cast<float>(samples[i]) * vol);
+        }
     }
 
     return oboe::DataCallbackResult::Continue;
