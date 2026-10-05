@@ -59,8 +59,7 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.ui)
+    // material3 / ui 版本统一由 Compose BOM 管理，勿单独写死
     implementation(libs.oboe) // 引用 toml 中的 Oboe
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

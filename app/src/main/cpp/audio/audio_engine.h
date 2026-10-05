@@ -39,7 +39,11 @@ public:
 private:
     static constexpr int kSampleRate = 48000;
     static constexpr int kChannelCount = 2;
-    static constexpr int kRingBufferFrames = 16384;   // ~85ms @48kHz
+    // 环形缓冲容量（单位=帧，非字节）：
+    // 16384 帧 ÷ 48000 帧/秒 × 1000 = 341.3 ms
+    // 必须是 2 的幂，否则 PaUtil_InitializeRingBuffer 返回 -1
+    // 实际占用 = 可用帧数，不会到满；341ms 只是溢出上限
+    static constexpr int kRingBufferFrames = 16384;
 
     std::shared_ptr<oboe::AudioStream> stream_;
     PaUtilRingBuffer ringBuffer_{};
