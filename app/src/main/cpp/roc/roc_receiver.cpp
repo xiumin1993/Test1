@@ -46,7 +46,7 @@ bool RocReceiver::start(AudioEngine& engine, int port) {
     receiver_config.frame_encoding.format = ROC_FORMAT_PCM_FLOAT32;
     receiver_config.frame_encoding.channels = ROC_CHANNEL_LAYOUT_STEREO;
     receiver_config.clock_source = ROC_CLOCK_SOURCE_INTERNAL;
-    receiver_config.target_latency = 50000000; // 50ms 目标延迟
+    receiver_config.target_latency = 50000000;    // ★ 从 200ms 降到 50ms
 
     if (roc_receiver_open(context_, &receiver_config, &receiver_) < 0) {
         LOGE("Failed to open roc receiver");

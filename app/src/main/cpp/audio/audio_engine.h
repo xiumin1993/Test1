@@ -16,6 +16,12 @@ public:
     void stop();
 
     /**
+    * 返回当前环形缓冲区里堆积的音频时长（毫秒）
+    * 反映抖动缓冲的占用情况
+    */
+    float getBufferLevelMs() const;
+
+    /**
      * 写入 float32 PCM 数据到环形缓冲区
      * @param data      float32 交错立体声 PCM 数据，取值范围 [-1.0, 1.0]
      * @param numFrames 帧数（每帧包含左右两个 float）
@@ -33,7 +39,7 @@ public:
 private:
     static constexpr int kSampleRate = 48000;
     static constexpr int kChannelCount = 2;
-    static constexpr int kRingBufferFrames = 4096;   // ~85ms @48kHz
+    static constexpr int kRingBufferFrames = 16384;   // ~85ms @48kHz
 
     std::shared_ptr<oboe::AudioStream> stream_;
     PaUtilRingBuffer ringBuffer_{};

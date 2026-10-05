@@ -13,7 +13,7 @@ find_package(oboe REQUIRED CONFIG)
 # 导入预编译的 libroc.so
 add_library(roc SHARED IMPORTED)
 set_target_properties(roc PROPERTIES
-        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../../jniLibs/${ANDROID_ABI}/libroc.so
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libroc.so
 )
 
 add_library(

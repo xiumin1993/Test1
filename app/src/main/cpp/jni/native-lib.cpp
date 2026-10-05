@@ -53,3 +53,8 @@ Java_com_example_test_MainActivity_stopRocReceiver(JNIEnv *env, jobject /* this 
     }
     gAudioEngine.stop();
 }
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_example_test_MainActivity_getBufferLevelMs(JNIEnv *env, jobject /* this */) {
+    return static_cast<jfloat>(gAudioEngine.getBufferLevelMs());
+}

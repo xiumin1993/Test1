@@ -60,6 +60,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.ui)
     implementation(libs.oboe) // 引用 toml 中的 Oboe
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
